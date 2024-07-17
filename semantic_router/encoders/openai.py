@@ -15,8 +15,12 @@ from semantic_router.schema import EncoderInfo
 from semantic_router.utils.defaults import EncoderDefault
 from semantic_router.utils.logger import logger
 
-
 model_configs = {
+    "Alibaba-NLP/gte-Qwen2-7B-instruct": EncoderInfo(
+        name="Alibaba-NLP/gte-Qwen2-7B-instruct",
+        token_limit=32768,
+        threshold=0.3,
+    ),
     "text-embedding-ada-002": EncoderInfo(
         name="text-embedding-ada-002",
         token_limit=8192,
@@ -44,13 +48,13 @@ class OpenAIEncoder(BaseEncoder):
     type: str = "openai"
 
     def __init__(
-        self,
-        name: Optional[str] = None,
-        openai_base_url: Optional[str] = None,
-        openai_api_key: Optional[str] = None,
-        openai_org_id: Optional[str] = None,
-        score_threshold: Optional[float] = None,
-        dimensions: Union[int, NotGiven] = NotGiven(),
+            self,
+            name: Optional[str] = None,
+            openai_base_url: Optional[str] = None,
+            openai_api_key: Optional[str] = None,
+            openai_org_id: Optional[str] = None,
+            score_threshold: Optional[float] = None,
+            dimensions: Union[int, NotGiven] = NotGiven(),
     ):
         if name is None:
             name = EncoderDefault.OPENAI.value["embedding_model"]
@@ -89,9 +93,11 @@ class OpenAIEncoder(BaseEncoder):
         if name in model_configs:
             self.token_limit = model_configs[name].token_limit
         # get token encoder
-        self._token_encoder = tiktoken.encoding_for_model(name)
+        # token_encoder1 = tiktoken.encoding_for_model("gpt-4o")
+        # token_encoder2 = tiktoken.encoding_for_model(name)
+        self._token_encoder = tiktoken.encoding_for_model("gpt-4o")
 
-    def __call__(self, docs: List[str], truncate: bool = True) -> List[List[float]]:
+    def __call__(self, docs: List[str], truncate: bool = False) -> List[List[float]]:
         """Encode a list of text documents into embeddings using OpenAI API.
 
         :param docs: List of text documents to encode.
@@ -119,17 +125,17 @@ class OpenAIEncoder(BaseEncoder):
                 if embeds.data:
                     break
             except OpenAIError as e:
-                sleep(2**j)
+                sleep(2 ** j)
                 error_message = str(e)
-                logger.warning(f"Retrying in {2**j} seconds...")
+                logger.warning(f"Retrying in {2 ** j} seconds...")
             except Exception as e:
                 logger.error(f"OpenAI API call failed. Error: {error_message}")
                 raise ValueError(f"OpenAI API call failed. Error: {e}") from e
 
         if (
-            not embeds
-            or not isinstance(embeds, CreateEmbeddingResponse)
-            or not embeds.data
+                not embeds
+                or not isinstance(embeds, CreateEmbeddingResponse)
+                or not embeds.data
         ):
             logger.info(f"Returned embeddings: {embeds}")
             raise ValueError(f"No embeddings returned. Error: {error_message}")
@@ -171,17 +177,17 @@ class OpenAIEncoder(BaseEncoder):
                 if embeds.data:
                     break
             except OpenAIError as e:
-                await asleep(2**j)
+                await asleep(2 ** j)
                 error_message = str(e)
-                logger.warning(f"Retrying in {2**j} seconds...")
+                logger.warning(f"Retrying in {2 ** j} seconds...")
             except Exception as e:
                 logger.error(f"OpenAI API call failed. Error: {error_message}")
                 raise ValueError(f"OpenAI API call failed. Error: {e}") from e
 
         if (
-            not embeds
-            or not isinstance(embeds, CreateEmbeddingResponse)
-            or not embeds.data
+                not embeds
+                or not isinstance(embeds, CreateEmbeddingResponse)
+                or not embeds.data
         ):
             logger.info(f"Returned embeddings: {embeds}")
             raise ValueError(f"No embeddings returned. Error: {error_message}")
